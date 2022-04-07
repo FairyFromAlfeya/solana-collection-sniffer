@@ -1,14 +1,15 @@
 import { ClientOptions, Transport } from '@nestjs/microservices';
-import { resolve } from 'path';
+import {
+  SolanaCollectionSnifferProto,
+  SOLANA_COLLECTION_SNIFFER_PROTO_PATH,
+} from '@fairyfromalfeya/fsociety-proto';
 
-/**
- * Config for solana-collection-sniffer grpc service
- */
 export const serviceConfig: ClientOptions = {
   transport: Transport.GRPC,
   options: {
     url: `${process.env.HOST}:${process.env.PORT}`,
-    package: 'com.fsociety.solanacollectionsniffer',
-    protoPath: resolve('proto/solana-collection-sniffer.proto'),
+    package:
+      SolanaCollectionSnifferProto.COM_FSOCIETY_SOLANACOLLECTIONSNIFFER_PACKAGE_NAME,
+    protoPath: SOLANA_COLLECTION_SNIFFER_PROTO_PATH,
   },
 };

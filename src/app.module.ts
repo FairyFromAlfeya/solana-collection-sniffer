@@ -2,9 +2,14 @@ import { Module } from '@nestjs/common';
 import { ServiceModule } from './service/service.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClientsModule } from './clients/clients.module';
+import { ConfigModule } from '@nestjs/config';
 
-// ClientsModule - global
 @Module({
-  imports: [TypeOrmModule.forRoot(), ClientsModule, ServiceModule],
+  imports: [
+    TypeOrmModule.forRoot(),
+    ConfigModule.forRoot({ isGlobal: true }),
+    ClientsModule,
+    ServiceModule,
+  ],
 })
 export class AppModule {}
