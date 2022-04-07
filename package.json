@@ -4,7 +4,6 @@
   "description": "solana-collection-sniffer",
   "author": "fsociety",
   "private": true,
-  "license": "MIT",
   "scripts": {
     "prepare": "husky install",
     "prebuild": "rimraf dist",
