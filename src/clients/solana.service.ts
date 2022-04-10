@@ -16,7 +16,7 @@ import { Redis } from 'ioredis';
 import { RedisService } from 'nestjs-redis';
 import { NftStatus } from '../manager/interfaces/nft-status.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { NftUpdatedEvent } from '../eventa/nft-updated.event';
+import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
 
 @Injectable()

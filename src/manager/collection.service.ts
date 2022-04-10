@@ -7,9 +7,9 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { CollectionCreatedEvent } from '../eventa/collection-created.event';
+import { CollectionCreatedEvent } from '../events/collection-created.event';
 import { SolanaService } from '../clients/solana.service';
-import { CollectionUpdatedEvent } from '../eventa/collection-updated.event';
+import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 
 @Injectable()
 export class CollectionService {

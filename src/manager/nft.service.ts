@@ -15,8 +15,8 @@ import {
   toArray,
 } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
-import { NftUpdatedEvent } from '../eventa/nft-updated.event';
-import { CollectionUpdatedEvent } from '../eventa/collection-updated.event';
+import { NftUpdatedEvent } from '../events/nft-updated.event';
+import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 
 @Injectable()
 export class NftService {
