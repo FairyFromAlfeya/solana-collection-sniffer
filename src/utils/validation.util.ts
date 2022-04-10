@@ -4,6 +4,11 @@ import {
   CommonProto,
 } from '@fairyfromalfeya/fsociety-proto';
 
+export const streamUpdatedNftsRequestSchema: Joi.ObjectSchema<SolanaCollectionSnifferProto.StreamUpdatedNftsRequest> =
+  Joi.object<SolanaCollectionSnifferProto.StreamUpdatedNftsRequest, true>({
+    id: Joi.string().required(),
+  });
+
 export const createCollectionRequestSchema: Joi.ObjectSchema<SolanaCollectionSnifferProto.Collection> =
   Joi.object<SolanaCollectionSnifferProto.Collection, true>({
     id: Joi.string().forbidden(),

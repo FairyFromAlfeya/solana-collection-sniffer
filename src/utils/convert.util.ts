@@ -3,6 +3,7 @@ import {
   SolanaCollectionSnifferProto,
 } from '@fairyfromalfeya/fsociety-proto';
 import { Collection } from '../manager/entities/collection.entity';
+import { Nft } from '../clients/interfaces/nft.interface';
 
 export const collectionProtoToEntity = (
   collection: SolanaCollectionSnifferProto.Collection,
@@ -25,11 +26,40 @@ export const collectionEntityToProto = (
   removedAt: collection.removedAt,
 });
 
+export const nftEntityToProto = (
+  nft: Nft,
+): SolanaCollectionSnifferProto.Nft => ({
+  collection: collectionEntityToProto(nft.collection),
+  mint: nft.mint,
+  price: nft.price,
+  rarity: nft.rarity,
+  owner: nft.owner,
+  status: nft.status,
+  createdAt: nft.createdAt,
+});
+
 export const listCollectionsToProto = (
   result: [Collection[], number],
   pagination: CommonProto.PaginationRequest,
 ): SolanaCollectionSnifferProto.ListCollectionsResponse => ({
   collections: result[0].map((claim) => collectionEntityToProto(claim)),
+  pagination: {
+    totalSize: result[1],
+    nextPageNumber: hasNextPage(
+      result[1],
+      pagination.pageNumber,
+      pagination.pageSize,
+    )
+      ? ++pagination.pageNumber
+      : null,
+  },
+});
+
+export const listNftsToProto = (
+  result: [Nft[], number],
+  pagination: CommonProto.PaginationRequest,
+): SolanaCollectionSnifferProto.ListNftsResponse => ({
+  nfts: result[0].map((nft) => nftEntityToProto(nft)),
   pagination: {
     totalSize: result[1],
     nextPageNumber: hasNextPage(

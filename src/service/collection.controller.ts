@@ -3,7 +3,7 @@ import {
   SolanaCollectionSnifferProto,
   CommonProto,
 } from '@fairyfromalfeya/fsociety-proto';
-import { UsePipes } from '@nestjs/common';
+import { UseInterceptors, UsePipes } from '@nestjs/common';
 import {
   createCollectionRequestSchema,
   updateCollectionRequestSchema,
@@ -12,8 +12,10 @@ import {
 } from '../utils/validation.util';
 import { JoiValidationPipe } from '../pipes/joi-validation.pipe';
 import { CollectionServiceProxy } from '../proxy/collection-service.proxy';
+import { ProfilingInterceptor } from '../interceptors/profiling.interceptor';
 
 @GrpcService()
+@UseInterceptors(ProfilingInterceptor)
 export class CollectionController {
   constructor(
     private readonly collectionServiceProxy: CollectionServiceProxy,

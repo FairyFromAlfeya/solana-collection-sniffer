@@ -22,6 +22,9 @@ export class Collection {
   @Column('numeric')
   floor: number;
 
+  @Column('varchar', { array: true, default: [] })
+  nfts?: string[];
+
   @CreateDateColumn({
     transformer: dateColumnTransformer,
     name: 'created_at',

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Collection } from './entities/collection.entity';
 import { Repository } from 'typeorm';
@@ -6,15 +6,22 @@ import { CommonProto } from '@fairyfromalfeya/fsociety-proto';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { CollectionCreatedEvent } from '../eventa/collection-created.event';
+import { SolanaService } from '../clients/solana.service';
 
 @Injectable()
 export class CollectionService {
+  private readonly logger = new Logger('CollectionService');
+
   constructor(
     @InjectRepository(Collection)
     private readonly collectionRepository: Repository<Collection>,
+    private readonly solanaService: SolanaService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  private getCollectionByIdOrThrow(id: string): Promise<Collection> {
+  getCollectionByIdOrThrow(id: string): Promise<Collection> {
     return this.collectionRepository.findOneOrFail(id).catch(() => {
       throw new RpcException({
         code: status.NOT_FOUND,
@@ -24,7 +31,14 @@ export class CollectionService {
   }
 
   createCollection(collection: Collection): Promise<Collection> {
-    return this.collectionRepository.save(collection);
+    return this.collectionRepository.save(collection).then((collection) => {
+      this.eventEmitter.emit(
+        'collection.created',
+        new CollectionCreatedEvent(collection),
+      );
+
+      return collection;
+    });
   }
 
   updateCollection(collection: Collection): Promise<Collection> {
@@ -49,5 +63,19 @@ export class CollectionService {
         [pagination.orderBy]: orderDirectionToString(pagination.orderDirection),
       },
     });
+  }
+
+  @OnEvent('collection.created')
+  private async handleNftMinted(event: CollectionCreatedEvent): Promise<void> {
+    this.logger.log(`Extracting NFTs for collection ${event.collection.id}`);
+
+    return await this.solanaService
+      .extractNftsAddressesFromCollection(event.collection.address)
+      .then((nfts) => this.updateCollection({ ...event.collection, nfts }))
+      .then((collection) =>
+        this.logger.log(
+          `Loaded ${collection.nfts.length} NFTs for collection ${event.collection.id}`,
+        ),
+      );
   }
 }
