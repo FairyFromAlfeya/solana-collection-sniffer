@@ -35,7 +35,7 @@ const lock = () => {
   };
 };
 
-export abstract class Cacheable<T> {
+export abstract class Cacheable<T, D> {
   private fetchLock = lock();
 
   // Set Local/Redis/Postgres cache
@@ -43,10 +43,10 @@ export abstract class Cacheable<T> {
   protected abstract setCache(id: string, value: T): Promise<void>;
 
   // Get snapshot from another service
-  protected abstract getValue(id: string): Promise<T>;
+  protected abstract getValue(id: string, extra?: D): Promise<T>;
 
   // Get cached or request new value
-  async get(id: string): Promise<T> {
+  async get(id: string, extra?: D): Promise<T> {
     try {
       // Try get cache
       let value = await this.getCache(id);
@@ -56,7 +56,7 @@ export abstract class Cacheable<T> {
 
         try {
           if (value == null) {
-            value = await this.getValue(id);
+            value = await this.getValue(id, extra);
             await this.setCache(id, value);
           }
         } finally {

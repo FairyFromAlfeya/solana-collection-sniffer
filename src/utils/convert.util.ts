@@ -12,7 +12,6 @@ export const collectionProtoToEntity = (
   id: collection.id,
   name: collection.name,
   address: collection.address,
-  floor: collection.floor,
 });
 
 export const collectionEntityToProto = (

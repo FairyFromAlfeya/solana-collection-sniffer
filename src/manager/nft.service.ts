@@ -6,6 +6,7 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { SolanaService } from '../clients/solana.service';
 import {
+  filter,
   from,
   lastValueFrom,
   map,
@@ -17,6 +18,7 @@ import {
 import { OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { CollectionUpdatedEvent } from '../events/collection-updated.event';
+import { Collection } from './entities/collection.entity';
 
 @Injectable()
 export class NftService {
@@ -38,9 +40,10 @@ export class NftService {
     }
 
     return this.collectionService
-      .getCollectionByIdOrThrow(pagination.filters?.collection)
+      .getCollectionByIdOrThrow(pagination.filters.collection)
       .then((collection) =>
-        this.aggregateNfts(
+        this.aggregate(
+          collection,
           collection.nfts.slice(
             pagination.pageSize * pagination.pageNumber,
             pagination.pageSize * (pagination.pageNumber + 1),
@@ -51,16 +54,17 @@ export class NftService {
   }
 
   streamUpdatedNfts(collection: string): Observable<Nft> {
-    return this.subject;
+    return this.subject.pipe(filter((nft) => nft.collection.id === collection));
   }
 
-  private aggregateNfts(
+  private aggregate(
+    collection: Collection,
     ids: string[],
     total: number,
   ): Promise<[Nft[], number]> {
     return lastValueFrom(
       from(ids).pipe(
-        mergeMap((id) => this.solanaService.get(id), 10),
+        mergeMap((id) => this.solanaService.get(id, collection), 15),
         toArray(),
         map((nfts) => [[...nfts], total]),
       ),
@@ -68,7 +72,7 @@ export class NftService {
   }
 
   @OnEvent('nft.updated')
-  private async handleNftUpdated(event: NftUpdatedEvent): Promise<void> {
+  private handleNftUpdated(event: NftUpdatedEvent): void {
     this.subject.next(event.nft);
   }
 
@@ -76,7 +80,8 @@ export class NftService {
   private async handleCollectionUpdated(
     event: CollectionUpdatedEvent,
   ): Promise<void> {
-    await this.aggregateNfts(
+    await this.aggregate(
+      event.collection,
       event.collection.nfts,
       event.collection.nfts.length,
     );

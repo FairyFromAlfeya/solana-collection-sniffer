@@ -11,6 +11,6 @@ export interface Nft {
   status: NftStatus;
   escrowAccount: string;
   tokenAccount: string;
-  createdAt: string;
   marketplace: Marketplace;
+  createdAt: string;
 }

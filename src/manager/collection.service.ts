@@ -10,6 +10,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CollectionCreatedEvent } from '../events/collection-created.event';
 import { SolanaService } from '../clients/solana.service';
 import { CollectionUpdatedEvent } from '../events/collection-updated.event';
+import { CollectionRemovedEvent } from '../events/collection-removed.event';
 
 @Injectable()
 export class CollectionService {
@@ -57,9 +58,16 @@ export class CollectionService {
   }
 
   removeCollection(collection: Collection): Promise<Collection> {
-    return this.getCollectionByIdOrThrow(collection.id).then((old) =>
-      this.collectionRepository.softRemove(old),
-    );
+    return this.getCollectionByIdOrThrow(collection.id)
+      .then((old) => this.collectionRepository.softRemove(old))
+      .then((collection) => {
+        this.eventEmitter.emit(
+          'collection.removed',
+          new CollectionRemovedEvent(collection),
+        );
+
+        return collection;
+      });
   }
 
   listCollections(
@@ -75,10 +83,10 @@ export class CollectionService {
   }
 
   @OnEvent('collection.created')
-  private async handleNftMinted(event: CollectionCreatedEvent): Promise<void> {
+  private handleNftMinted(event: CollectionCreatedEvent): Promise<void> {
     this.logger.log(`Extracting NFTs for collection ${event.collection.id}`);
 
-    return await this.solanaService
+    return this.solanaService
       .extractNftsAddressesFromCollection(event.collection.address)
       .then((nfts) => this.updateCollection({ ...event.collection, nfts }))
       .then((collection) =>

@@ -18,11 +18,15 @@ import { NftStatus } from '../manager/interfaces/nft-status.interface';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
+import { Rarity } from './interfaces/rarity.interface';
+import { NftData } from './interfaces/nft-data.interface';
+import { Price } from './interfaces/price.interface';
+import { Collection } from '../manager/entities/collection.entity';
 
 @Injectable()
-export class SolanaService extends Cacheable<Nft> {
+export class SolanaService extends Cacheable<Nft, Collection> {
   private readonly logger = new Logger('SolanaService');
-  private client: Redis;
+  private readonly client: Redis;
 
   constructor(
     private readonly redisService: RedisService,
@@ -32,7 +36,7 @@ export class SolanaService extends Cacheable<Nft> {
     this.client = this.redisService.getClient();
   }
 
-  protected getCache(id: string): Promise<Nft> {
+  protected getCache(id: string): Promise<Nft | null> {
     return this.client
       .get(`${id}_nft_solana_collection_sniffer`)
       .then((nft) => (nft ? JSON.parse(nft) : null));
@@ -51,94 +55,57 @@ export class SolanaService extends Cacheable<Nft> {
     );
   }
 
-  async commitUpdatedNft(nft: MarketActionEntity) {
+  protected async getValue(id: string, extra?: Collection): Promise<Nft> {
+    const data = await SolanaService.getNftData(id);
+    const rarity = SolanaService.getRarity(id, data.parsedData);
+    const price = (await SolanaService.getPrice(id)) as Price;
+
+    return {
+      collection: { ...extra, nfts: undefined },
+      mint: id,
+      price: price.price,
+      rarity: rarity.probability,
+      owner: price.owner,
+      status: NftStatus[`NFT_STATUS_${price.actionType}`],
+      escrowAccount: price.escrowAccount,
+      tokenAccount: data.tokenAccount,
+      marketplace: Marketplace.MARKETPLACE_MAGIC_EDEN,
+      createdAt: new Date(price.timestamp * 1000).toISOString(),
+    };
+  }
+
+  async commitUpdatedNft(nft: Price): Promise<void> {
     const cache = await this.getCache(nft.mint);
-
-    console.log(nft);
-
-    this.eventEmitter.emit(
-      'nft.updated',
-      new NftUpdatedEvent({
-        ...cache,
-        mint: nft.mint,
-        price: (nft as any).price,
-        owner: (nft as any).owner,
-        status: NftStatus.NFT_STATUS_CANCEL_LISTING,
-        escrowAccount: (nft as any).escrowAccount,
-        tokenAccount: (nft as any).tokenAccount,
-        createdAt: new Date(nft.timestamp * 1000).toISOString(),
-        marketplace: Marketplace.MARKETPLACE_MAGIC_EDEN,
-        collection: {
-          nfts: [],
-          name: 'collection',
-          address: 'address',
-          floor: 0.123,
-        },
-      }),
-    );
 
     if (cache != null) {
       this.logger.log(
         `Update cache for NFT ${nft.mint} with values: ${JSON.stringify(nft)}`,
       );
 
-      await this.setCache(nft.mint, {
-        mint: nft.mint,
+      const updated = {
+        ...cache,
+        price: nft.price,
+        owner: nft.owner,
+        status: NftStatus[`NFT_STATUS_${nft.actionType}`],
+        escrowAccount: nft.escrowAccount,
         createdAt: new Date(nft.timestamp * 1000).toISOString(),
-        price: 1,
-        owner: 'ewr',
-        status: NftStatus.NFT_STATUS_CANCEL_LISTING,
-        rarity: 2,
-        escrowAccount: '',
-        tokenAccount: '',
-        marketplace: Marketplace.MARKETPLACE_MAGIC_EDEN,
-        collection: {
-          name: 'collection',
-          address: 'address',
-          floor: 0.123,
-        },
-      });
+      };
+
+      await this.setCache(nft.mint, updated);
+      this.eventEmitter.emit('nft.updated', new NftUpdatedEvent(updated));
     }
   }
 
-  protected async getValue(id: string): Promise<Nft> {
-    const data = await SolanaService.getNftDataByMint(id);
-    const price = await SolanaService.price(id).catch(() => ({
-      mint: '',
-      price: 0,
-      timestamp: 0,
-    }));
-    const rare = SolanaService.nftRarer(id, data.parsedData);
-
-    return Promise.resolve({
-      id,
-      mint: price.mint,
-      price: (price as any).price,
-      rarity: rare[0].probability,
-      owner: (price as any).owner,
-      status: NftStatus.NFT_STATUS_CANCEL_LISTING,
-      escrowAccount: (price as any).escrowAccount,
-      tokenAccount: data.tokenAccount,
-      createdAt: new Date(price.timestamp * 1000).toISOString(),
-      marketplace: Marketplace.MARKETPLACE_MAGIC_EDEN,
-      collection: {
-        name: 'collection',
-        address: 'address',
-        floor: 0.123,
-      },
-    });
-  }
-
-  extractNftsAddressesFromCollection(id: string): Promise<string[]> {
+  extractNftsAddressesFromCollection(candyMachine: string): Promise<string[]> {
     return lastValueFrom(
       nftExtractor({
-        candyMachine: new PublicKey(id),
+        candyMachine: new PublicKey(candyMachine),
         connection: CONNECTION,
       }),
     );
   }
 
-  private static getNftDataByMint(mint: string) {
+  private static getNftData(mint: string): Promise<NftData> {
     return lastValueFrom(
       getNftDataByMint({
         connection: CONNECTION,
@@ -147,16 +114,13 @@ export class SolanaService extends Cacheable<Nft> {
     );
   }
 
-  private static nftRarer(
-    mint: string,
-    parsedData: ParsedNFTData,
-  ): { mint: string; probability: number }[] {
-    return nftRarer([{ mint, parsedData }]);
+  private static getRarity(mint: string, parsedData: ParsedNFTData): Rarity {
+    return nftRarer([{ mint, parsedData }])[0];
   }
 
-  private static price(id: string): Promise<MarketActionEntity> {
+  private static getPrice(nft: string): Promise<MarketActionEntity> {
     return lastValueFrom(
-      priceExtractor({ connection: CONNECTION, nft: new PublicKey(id) }),
+      priceExtractor({ connection: CONNECTION, nft: new PublicKey(nft) }),
     );
   }
 }
