@@ -3,7 +3,8 @@ import {
   SolanaCollectionSnifferProto,
 } from '@fairyfromalfeya/fsociety-proto';
 import { Collection } from '../manager/entities/collection.entity';
-import { Nft } from '../clients/interfaces/nft.interface';
+import { Nft } from '../manager/interfaces/nft.interface';
+import { Marketplace } from '../manager/interfaces/marketplace.interface';
 
 export const collectionProtoToEntity = (
   collection: SolanaCollectionSnifferProto.Collection,
@@ -21,6 +22,7 @@ export const collectionEntityToProto = (
   name: collection.name,
   address: collection.address,
   floor: collection.floor,
+  nftsCount: collection.nfts.length,
   createdAt: collection.createdAt,
   updatedAt: collection.updatedAt,
   removedAt: collection.removedAt,
@@ -35,8 +37,16 @@ export const nftEntityToProto = (
   rarity: nft.rarity,
   owner: nft.owner,
   status: nft.status,
+  escrowAccount: nft.escrowAccount,
+  tokenAccount: nft.tokenAccount,
+  marketplace: marketplaceEntityToProto(nft.marketplace),
   createdAt: nft.createdAt,
 });
+
+export const marketplaceEntityToProto = (
+  marketplace: Marketplace,
+): SolanaCollectionSnifferProto.Marketplace =>
+  SolanaCollectionSnifferProto.Marketplace[marketplace];
 
 export const listCollectionsToProto = (
   result: [Collection[], number],

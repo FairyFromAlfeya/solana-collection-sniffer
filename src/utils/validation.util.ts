@@ -6,7 +6,7 @@ import {
 
 export const streamUpdatedNftsRequestSchema: Joi.ObjectSchema<SolanaCollectionSnifferProto.StreamUpdatedNftsRequest> =
   Joi.object<SolanaCollectionSnifferProto.StreamUpdatedNftsRequest, true>({
-    id: Joi.string().required(),
+    collection: Joi.string().required(),
   });
 
 export const createCollectionRequestSchema: Joi.ObjectSchema<SolanaCollectionSnifferProto.Collection> =
@@ -14,7 +14,8 @@ export const createCollectionRequestSchema: Joi.ObjectSchema<SolanaCollectionSni
     id: Joi.string().forbidden(),
     name: Joi.string().min(3).max(500).required(),
     address: Joi.string().min(3).max(500).required(),
-    floor: Joi.number().min(0).required(),
+    floor: Joi.number().forbidden(),
+    nftsCount: Joi.number().forbidden(),
     createdAt: Joi.string().forbidden(),
     updatedAt: Joi.string().forbidden(),
     removedAt: Joi.string().forbidden(),
@@ -25,7 +26,8 @@ export const updateCollectionRequestSchema: Joi.ObjectSchema<SolanaCollectionSni
     id: Joi.string().uuid({ version: 'uuidv4', separator: '-' }).required(),
     name: Joi.string().min(3).max(500).optional(),
     address: Joi.string().min(3).max(500).optional(),
-    floor: Joi.number().min(0).optional(),
+    floor: Joi.number().forbidden(),
+    nftsCount: Joi.number().forbidden(),
     createdAt: Joi.string().forbidden(),
     updatedAt: Joi.string().forbidden(),
     removedAt: Joi.string().forbidden(),
@@ -37,6 +39,7 @@ export const removeCollectionRequestSchema: Joi.ObjectSchema<SolanaCollectionSni
     name: Joi.string().forbidden(),
     address: Joi.string().forbidden(),
     floor: Joi.number().forbidden(),
+    nftsCount: Joi.number().forbidden(),
     createdAt: Joi.string().forbidden(),
     updatedAt: Joi.string().forbidden(),
     removedAt: Joi.string().forbidden(),

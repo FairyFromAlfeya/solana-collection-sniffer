@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CommonProto } from '@fairyfromalfeya/fsociety-proto';
-import { Nft } from '../clients/interfaces/nft.interface';
+import { Nft } from './interfaces/nft.interface';
 import { CollectionService } from './collection.service';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
@@ -16,6 +16,7 @@ import {
 } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../eventa/nft-updated.event';
+import { CollectionUpdatedEvent } from '../eventa/collection-updated.event';
 
 @Injectable()
 export class NftService {
@@ -59,7 +60,7 @@ export class NftService {
   ): Promise<[Nft[], number]> {
     return lastValueFrom(
       from(ids).pipe(
-        mergeMap((id) => this.solanaService.get(id), 100),
+        mergeMap((id) => this.solanaService.get(id), 10),
         toArray(),
         map((nfts) => [[...nfts], total]),
       ),
@@ -69,5 +70,15 @@ export class NftService {
   @OnEvent('nft.updated')
   private async handleNftUpdated(event: NftUpdatedEvent): Promise<void> {
     this.subject.next(event.nft);
+  }
+
+  @OnEvent('collection.updated')
+  private async handleCollectionUpdated(
+    event: CollectionUpdatedEvent,
+  ): Promise<void> {
+    await this.aggregateNfts(
+      event.collection.nfts,
+      event.collection.nfts.length,
+    );
   }
 }

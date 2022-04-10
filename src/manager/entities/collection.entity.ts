@@ -19,8 +19,8 @@ export class Collection {
   @Column()
   address: string;
 
-  @Column('numeric')
-  floor: number;
+  @Column('numeric', { nullable: true })
+  floor?: number;
 
   @Column('varchar', { array: true, default: [] })
   nfts?: string[];

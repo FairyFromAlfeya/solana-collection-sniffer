@@ -579,10 +579,10 @@
     "@ethersproject/logger" "^5.6.0"
     hash.js "1.1.7"
 
-"@fairyfromalfeya/fsociety-proto@2.0.7":
-  version "2.0.7"
-  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.7.tgz#aa8e1920e005fccc55176ce9c4a42b445a5906fc"
-  integrity sha512-/wDlAbO7Tuafhya4p2OKP+tNZL/QlMVwMwhOMDYg7Dgk86yo4odkoOVtGBM/IBUVTC8LkQC3HkXEBYDwm6yklw==
+"@fairyfromalfeya/fsociety-proto@2.0.10":
+  version "2.0.10"
+  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.10.tgz#d0307b0147925d6b426ebc71575c210ca1cfdeaf"
+  integrity sha512-b5GvFgioWi21gZz2hIQU3M7BnDJfQEcxW1/BBgQG8J6TquFyid0Z6kfNvVj7evXhvhQQok8oqlUqvF13N9DL0w==
   dependencies:
     "@nestjs/common" "8.4.3"
     "@nestjs/core" "8.4.3"
@@ -5594,10 +5594,10 @@ jsonparse@^1.2.0:
   resolved "https://registry.yarnpkg.com/jsonparse/-/jsonparse-1.3.1.tgz#3f4dae4a91fac315f71062f8521cc239f1366280"
   integrity sha1-P02uSpH6wxX3EGL4UhzCOfE2YoA=
 
-karneges-sbt@0.0.13:
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/karneges-sbt/-/karneges-sbt-0.0.13.tgz#a4fb4c1a075d044b6ab8d74ae78e86964087a523"
-  integrity sha512-Dx6lwJYx4JN/6kwuC36Ij3XHwL4IVONeAHIlmkYnYC/6QF3uMKFucEGgTDAcL7dpy7AXsNKqaSn8vjnw0ecGag==
+karneges-sbt@0.0.14:
+  version "0.0.14"
+  resolved "https://registry.yarnpkg.com/karneges-sbt/-/karneges-sbt-0.0.14.tgz#1b1ba7fc9bb93a8fa16d8d82c0039cbb359ca390"
+  integrity sha512-SyGNy9DI4FN4icdnKw43YYTnSNgz14K24ejrltJLdcmkW7Iwj/xYNGJn2mGoWB2tpxqbAjlQTvXUioJ/EyEFYw==
   dependencies:
     "@metaplex-foundation/mpl-token-metadata" "^1.2.5"
     "@project-serum/anchor" "^0.20.1"

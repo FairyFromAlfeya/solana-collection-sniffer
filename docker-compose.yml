@@ -1,0 +1,18 @@
+version: '3.1'
+services:
+  postgres:
+    image: bitnami/postgresql:latest
+    restart: always
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: solana-collection-sniffer
+      POSTGRES_PASSWORD: solana-collection-sniffer
+      POSTGRES_DB: solana-collection-sniffer
+  redis:
+    image: bitnami/redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes

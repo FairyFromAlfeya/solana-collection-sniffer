@@ -1,7 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { SolanaService } from './solana.service';
-import { marketPlaceSource, CONNECTION } from 'karneges-sbt';
-import { PublicKey } from '@solana/web3.js';
+import {
+  marketPlaceSource,
+  CONNECTION,
+  MAGIC_EDEN_MARKET_PLACE,
+} from 'karneges-sbt';
 
 @Injectable()
 export class ConsumeService implements OnModuleInit {
@@ -10,9 +13,7 @@ export class ConsumeService implements OnModuleInit {
   async onModuleInit() {
     marketPlaceSource({
       connection: CONNECTION,
-      marketPlaceProgram: new PublicKey(
-        'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA',
-      ),
+      marketPlaceProgram: MAGIC_EDEN_MARKET_PLACE,
     }).subscribe((nft) => this.solanaService.commitUpdatedNft(nft));
   }
 }

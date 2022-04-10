@@ -35,6 +35,6 @@ export class NftController {
   streamUpdatedNfts(
     request: SolanaCollectionSnifferProto.StreamUpdatedNftsRequest,
   ): Observable<SolanaCollectionSnifferProto.Nft> {
-    return this.nftServiceProxy.streamUpdatedNfts(request.id);
+    return this.nftServiceProxy.streamUpdatedNfts(request.collection);
   }
 }

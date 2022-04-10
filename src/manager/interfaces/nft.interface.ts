@@ -1,5 +1,6 @@
 import { NftStatus } from './nft-status.interface';
-import { Collection } from '../../manager/entities/collection.entity';
+import { Collection } from '../entities/collection.entity';
+import { Marketplace } from './marketplace.interface';
 
 export interface Nft {
   collection: Collection;
@@ -8,5 +9,8 @@ export interface Nft {
   rarity: number;
   owner: string;
   status: NftStatus;
+  escrowAccount: string;
+  tokenAccount: string;
   createdAt: string;
+  marketplace: Marketplace;
 }

@@ -9,6 +9,7 @@ import { orderDirectionToString } from '../utils/convert.util';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CollectionCreatedEvent } from '../eventa/collection-created.event';
 import { SolanaService } from '../clients/solana.service';
+import { CollectionUpdatedEvent } from '../eventa/collection-updated.event';
 
 @Injectable()
 export class CollectionService {
@@ -44,7 +45,15 @@ export class CollectionService {
   updateCollection(collection: Collection): Promise<Collection> {
     return this.getCollectionByIdOrThrow(collection.id)
       .then((old) => this.collectionRepository.save({ ...old, ...collection }))
-      .then(() => this.getCollectionByIdOrThrow(collection.id));
+      .then(() => this.getCollectionByIdOrThrow(collection.id))
+      .then((collection) => {
+        this.eventEmitter.emit(
+          'collection.updated',
+          new CollectionUpdatedEvent(collection),
+        );
+
+        return collection;
+      });
   }
 
   removeCollection(collection: Collection): Promise<Collection> {

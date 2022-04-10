@@ -16,7 +16,7 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
-    "@fairyfromalfeya/fsociety-proto": "2.0.7",
+    "@fairyfromalfeya/fsociety-proto": "2.0.10",
     "@grpc/grpc-js": "1.6.2",
     "@grpc/proto-loader": "0.6.9",
     "@nestjs/cli": "8.2.4",
@@ -29,7 +29,7 @@
     "@nestjs/typeorm": "8.0.3",
     "@solana/web3.js": "1.37.1",
     "joi": "17.6.0",
-    "karneges-sbt": "0.0.13",
+    "karneges-sbt": "0.0.14",
     "nestjs-redis": "git+https://github.com/skunight/nestjs-redis.git#master",
     "pg": "8.7.3",
     "redis": "4.0.6",
