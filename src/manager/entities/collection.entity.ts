@@ -14,10 +14,10 @@ export class Collection {
   id?: string;
 
   @Column()
-  name: string;
+  name?: string;
 
   @Column()
-  address: string;
+  address?: string;
 
   @Column('numeric', { nullable: true })
   floor?: number;

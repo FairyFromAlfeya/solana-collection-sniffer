@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Collection } from './entities/collection.entity';
 import { Repository } from 'typeorm';
@@ -6,22 +6,30 @@ import { CommonProto } from '@fairyfromalfeya/fsociety-proto';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
-import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { OnEvent } from '@nestjs/event-emitter';
 import { CollectionCreatedEvent } from '../events/collection-created.event';
 import { SolanaService } from '../clients/solana.service';
-import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 import { CollectionRemovedEvent } from '../events/collection-removed.event';
 
 @Injectable()
-export class CollectionService {
+export class CollectionService implements OnModuleInit {
   private readonly logger = new Logger('CollectionService');
 
   constructor(
     @InjectRepository(Collection)
     private readonly collectionRepository: Repository<Collection>,
     private readonly solanaService: SolanaService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  onModuleInit() {
+    this.collectionRepository.findAndCount().then((result) => {
+      this.logger.log(`Updating ${result[1]} collections from database`);
+
+      result[0].forEach((collection) =>
+        this.updateCollection({ id: collection.id }),
+      );
+    });
+  }
 
   getCollectionByIdOrThrow(id: string): Promise<Collection> {
     return this.collectionRepository.findOneOrFail(id).catch(() => {
@@ -33,41 +41,19 @@ export class CollectionService {
   }
 
   createCollection(collection: Collection): Promise<Collection> {
-    return this.collectionRepository.save(collection).then((collection) => {
-      this.eventEmitter.emit(
-        'collection.created',
-        new CollectionCreatedEvent(collection),
-      );
-
-      return collection;
-    });
+    return this.collectionRepository.save(collection);
   }
 
   updateCollection(collection: Collection): Promise<Collection> {
     return this.getCollectionByIdOrThrow(collection.id)
       .then((old) => this.collectionRepository.save({ ...old, ...collection }))
-      .then(() => this.getCollectionByIdOrThrow(collection.id))
-      .then((collection) => {
-        this.eventEmitter.emit(
-          'collection.updated',
-          new CollectionUpdatedEvent(collection),
-        );
-
-        return collection;
-      });
+      .then(() => this.getCollectionByIdOrThrow(collection.id));
   }
 
   removeCollection(collection: Collection): Promise<Collection> {
-    return this.getCollectionByIdOrThrow(collection.id)
-      .then((old) => this.collectionRepository.softRemove(old))
-      .then((collection) => {
-        this.eventEmitter.emit(
-          'collection.removed',
-          new CollectionRemovedEvent(collection),
-        );
-
-        return collection;
-      });
+    return this.getCollectionByIdOrThrow(collection.id).then((old) =>
+      this.collectionRepository.softRemove(old),
+    );
   }
 
   listCollections(
@@ -83,7 +69,9 @@ export class CollectionService {
   }
 
   @OnEvent('collection.created')
-  private handleNftMinted(event: CollectionCreatedEvent): Promise<void> {
+  private handleCollectionCreated(
+    event: CollectionCreatedEvent,
+  ): Promise<void> {
     this.logger.log(`Extracting NFTs for collection ${event.collection.id}`);
 
     return this.solanaService
@@ -94,5 +82,12 @@ export class CollectionService {
           `Loaded ${collection.nfts.length} NFTs for collection ${event.collection.id}`,
         ),
       );
+  }
+
+  @OnEvent('collection.removed')
+  private handleCollectionRemoved(event: CollectionRemovedEvent): void {
+    return event.collection.nfts.forEach((nft) =>
+      this.solanaService.removeCache(nft),
+    );
   }
 }

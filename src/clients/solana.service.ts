@@ -15,18 +15,22 @@ import { Nft } from '../manager/interfaces/nft.interface';
 import { Redis } from 'ioredis';
 import { RedisService } from 'nestjs-redis';
 import { NftStatus } from '../manager/interfaces/nft-status.interface';
-import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
 import { Rarity } from './interfaces/rarity.interface';
 import { NftData } from './interfaces/nft-data.interface';
 import { Price } from './interfaces/price.interface';
 import { Collection } from '../manager/entities/collection.entity';
+import { CollectionRemovedEvent } from '../events/collection-removed.event';
+import { CollectionCreatedEvent } from '../events/collection-created.event';
+import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 
 @Injectable()
-export class SolanaService extends Cacheable<Nft, Collection> {
+export class SolanaService extends Cacheable<Nft, string> {
   private readonly logger = new Logger('SolanaService');
   private readonly client: Redis;
+  private readonly collections = new Map<string, Collection>();
 
   constructor(
     private readonly redisService: RedisService,
@@ -39,29 +43,45 @@ export class SolanaService extends Cacheable<Nft, Collection> {
   protected getCache(id: string): Promise<Nft | null> {
     return this.client
       .get(`${id}_nft_solana_collection_sniffer`)
-      .then((nft) => (nft ? JSON.parse(nft) : null));
+      .then((nft) => (nft ? JSON.parse(nft) : null))
+      .then((nft) =>
+        nft
+          ? { ...nft, collection: this.collections.get(nft.collection.id) }
+          : null,
+      );
+  }
+
+  removeCache(id: string): Promise<string> {
+    this.logger.log(`Remove cache for NFT ${id}`);
+    return this.client.getdel(`${id}_nft_solana_collection_sniffer`);
   }
 
   protected async setCache(id: string, value: Nft): Promise<void> {
     this.logger.log(
-      `Set cache for NFT ${id} with values: ${JSON.stringify(value)}`,
+      `Set cache for NFT ${id} with values: ${JSON.stringify({
+        ...value,
+        collection: { id: value.collection.id },
+      })}`,
     );
 
     await this.client.set(
       `${id}_nft_solana_collection_sniffer`,
-      JSON.stringify(value),
-      'EX',
-      process.env.NFT_CACHE_EXPIRATION_SECONDS,
+      JSON.stringify({ ...value, collection: { id: value.collection.id } }),
     );
+
+    this.eventEmitter.emit('nft.updated', new NftUpdatedEvent(value));
   }
 
-  protected async getValue(id: string, extra?: Collection): Promise<Nft> {
+  protected async getValue(id: string, extra?: string): Promise<Nft> {
     const data = await SolanaService.getNftData(id);
     const rarity = SolanaService.getRarity(id, data.parsedData);
-    const price = (await SolanaService.getPrice(id)) as Price;
+    const price = (await SolanaService.getPrice(id).catch(() => ({
+      price: 0,
+      timestamp: Date.now(),
+    }))) as Price;
 
     return {
-      collection: { ...extra, nfts: undefined },
+      collection: this.collections.get(extra),
       mint: id,
       price: price.price,
       rarity: rarity.probability,
@@ -92,7 +112,6 @@ export class SolanaService extends Cacheable<Nft, Collection> {
       };
 
       await this.setCache(nft.mint, updated);
-      this.eventEmitter.emit('nft.updated', new NftUpdatedEvent(updated));
     }
   }
 
@@ -122,5 +141,20 @@ export class SolanaService extends Cacheable<Nft, Collection> {
     return lastValueFrom(
       priceExtractor({ connection: CONNECTION, nft: new PublicKey(nft) }),
     );
+  }
+
+  @OnEvent('collection.created')
+  private handleCollectionCreated(event: CollectionCreatedEvent): void {
+    this.collections.set(event.collection.id, event.collection);
+  }
+
+  @OnEvent('collection.updated')
+  private handleCollectionUpdated(event: CollectionUpdatedEvent): void {
+    this.collections.set(event.collection.id, event.collection);
+  }
+
+  @OnEvent('collection.removed')
+  private handleCollectionRemoved(event: CollectionRemovedEvent): void {
+    this.collections.delete(event.collection.id);
   }
 }

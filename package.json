@@ -27,7 +27,7 @@
     "@nestjs/microservices": "8.4.3",
     "@nestjs/platform-express": "8.4.3",
     "@nestjs/typeorm": "8.0.3",
-    "@solana/web3.js": "1.37.1",
+    "@solana/web3.js": "^1.30.2",
     "joi": "17.6.0",
     "karneges-sbt": "0.0.14",
     "nestjs-redis": "git+https://github.com/skunight/nestjs-redis.git#master",

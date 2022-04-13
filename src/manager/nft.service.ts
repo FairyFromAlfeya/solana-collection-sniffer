@@ -19,15 +19,16 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 import { Collection } from './entities/collection.entity';
+import { NftStatus } from './interfaces/nft-status.interface';
 
 @Injectable()
 export class NftService {
+  private readonly subject = new Subject<Nft>();
+
   constructor(
     private readonly collectionService: CollectionService,
     private readonly solanaService: SolanaService,
   ) {}
-
-  private subject = new Subject<Nft>();
 
   listNfts(
     pagination: CommonProto.PaginationRequest,
@@ -64,7 +65,7 @@ export class NftService {
   ): Promise<[Nft[], number]> {
     return lastValueFrom(
       from(ids).pipe(
-        mergeMap((id) => this.solanaService.get(id, collection), 15),
+        mergeMap((id) => this.solanaService.get(id, collection.id), 15),
         toArray(),
         map((nfts) => [[...nfts], total]),
       ),
@@ -74,6 +75,17 @@ export class NftService {
   @OnEvent('nft.updated')
   private handleNftUpdated(event: NftUpdatedEvent): void {
     this.subject.next(event.nft);
+
+    if (
+      event.nft.status === NftStatus.NFT_STATUS_LISTING &&
+      (!event.nft.collection.floor ||
+        event.nft.collection.floor > event.nft.price)
+    ) {
+      this.collectionService.updateCollection({
+        id: event.nft.collection.id,
+        floor: event.nft.price,
+      });
+    }
   }
 
   @OnEvent('collection.updated')
