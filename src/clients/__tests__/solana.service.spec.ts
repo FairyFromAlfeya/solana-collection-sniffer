@@ -26,7 +26,7 @@ describe('SolanaService', () => {
   });
 
   describe('get()', () => {
-    it('should return nft', () =>
+    it.skip('should return nft', () =>
       expect(
         solanaService.get('D9ZUMRWs3ZqLT86QLFyZg59NqTgx3RWh8XbgDw4szY6S'),
       ).resolves.toBeDefined());
