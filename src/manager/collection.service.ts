@@ -6,10 +6,11 @@ import { CommonProto } from '@fairyfromalfeya/fsociety-proto';
 import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
-import { OnEvent } from '@nestjs/event-emitter';
+import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CollectionCreatedEvent } from '../events/collection-created.event';
 import { SolanaService } from '../clients/solana.service';
-import { CollectionRemovedEvent } from '../events/collection-removed.event';
+import { CollectionStatus } from './interfaces/collection-status.interface';
+import { CollectionOutdatedEvent } from '../events/collection-outdated.event';
 
 @Injectable()
 export class CollectionService implements OnModuleInit {
@@ -19,6 +20,7 @@ export class CollectionService implements OnModuleInit {
     @InjectRepository(Collection)
     private readonly collectionRepository: Repository<Collection>,
     private readonly solanaService: SolanaService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   onModuleInit() {
@@ -26,7 +28,10 @@ export class CollectionService implements OnModuleInit {
       this.logger.log(`Updating ${result[1]} collections from database`);
 
       result[0].forEach((collection) =>
-        this.updateCollection({ id: collection.id }),
+        this.eventEmitter.emit(
+          'collection.outdated',
+          new CollectionOutdatedEvent(collection),
+        ),
       );
     });
   }
@@ -74,20 +79,31 @@ export class CollectionService implements OnModuleInit {
   ): Promise<void> {
     this.logger.log(`Extracting NFTs for collection ${event.collection.id}`);
 
-    return this.solanaService
-      .extractNftsAddressesFromCollection(event.collection.address)
-      .then((nfts) => this.updateCollection({ ...event.collection, nfts }))
+    return this.updateCollection({
+      id: event.collection.id,
+      status: CollectionStatus.COLLECTION_STATUS_LOADING_COLLECTION,
+    })
       .then((collection) =>
+        this.solanaService.extractNftsAddressesFromCollection(
+          collection.address,
+        ),
+      )
+      .then((nfts) =>
+        this.updateCollection({
+          ...event.collection,
+          status: CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
+          nfts,
+        }),
+      )
+      .then((collection) => {
         this.logger.log(
           `Loaded ${collection.nfts.length} NFTs for collection ${event.collection.id}`,
-        ),
-      );
-  }
+        );
 
-  @OnEvent('collection.removed')
-  private handleCollectionRemoved(event: CollectionRemovedEvent): void {
-    return event.collection.nfts.forEach((nft) =>
-      this.solanaService.removeCache(nft),
-    );
+        this.eventEmitter.emit(
+          'collection.outdated',
+          new CollectionOutdatedEvent(collection),
+        );
+      });
   }
 }

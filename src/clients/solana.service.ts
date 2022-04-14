@@ -1,13 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import {
-  CONNECTION,
-  getNftDataByMint,
-  MarketActionEntity,
-  nftExtractor,
-  nftRarer,
-  ParsedNFTData,
-  priceExtractor,
-} from 'karneges-sbt';
+import { CONNECTION, nftExtractor } from 'karneges-sbt';
 import { PublicKey } from '@solana/web3.js';
 import { lastValueFrom } from 'rxjs';
 import { Cacheable } from './interfaces/cachable.interface';
@@ -18,13 +10,11 @@ import { NftStatus } from '../manager/interfaces/nft-status.interface';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
-import { Rarity } from './interfaces/rarity.interface';
-import { NftData } from './interfaces/nft-data.interface';
 import { Price } from './interfaces/price.interface';
 import { Collection } from '../manager/entities/collection.entity';
 import { CollectionRemovedEvent } from '../events/collection-removed.event';
-import { CollectionCreatedEvent } from '../events/collection-created.event';
 import { CollectionUpdatedEvent } from '../events/collection-updated.event';
+import { getNftData, getPrice, getRarity } from '../utils/solana.util';
 
 @Injectable()
 export class SolanaService extends Cacheable<Nft, string> {
@@ -73,12 +63,9 @@ export class SolanaService extends Cacheable<Nft, string> {
   }
 
   protected async getValue(id: string, extra?: string): Promise<Nft> {
-    const data = await SolanaService.getNftData(id);
-    const rarity = SolanaService.getRarity(id, data.parsedData);
-    const price = (await SolanaService.getPrice(id).catch(() => ({
-      price: 0,
-      timestamp: Date.now(),
-    }))) as Price;
+    const data = await getNftData(id);
+    const rarity = getRarity(id, data.parsedData);
+    const price = await getPrice(id);
 
     return {
       collection: this.collections.get(extra),
@@ -124,37 +111,23 @@ export class SolanaService extends Cacheable<Nft, string> {
     );
   }
 
-  private static getNftData(mint: string): Promise<NftData> {
-    return lastValueFrom(
-      getNftDataByMint({
-        connection: CONNECTION,
-        mint: new PublicKey(mint),
-      }),
-    );
-  }
-
-  private static getRarity(mint: string, parsedData: ParsedNFTData): Rarity {
-    return nftRarer([{ mint, parsedData }])[0];
-  }
-
-  private static getPrice(nft: string): Promise<MarketActionEntity> {
-    return lastValueFrom(
-      priceExtractor({ connection: CONNECTION, nft: new PublicKey(nft) }),
-    );
-  }
-
-  @OnEvent('collection.created')
-  private handleCollectionCreated(event: CollectionCreatedEvent): void {
-    this.collections.set(event.collection.id, event.collection);
-  }
-
-  @OnEvent('collection.updated')
+  @OnEvent(['collection.created', 'collection.updated'])
   private handleCollectionUpdated(event: CollectionUpdatedEvent): void {
     this.collections.set(event.collection.id, event.collection);
   }
 
+  @OnEvent('collection.outdated')
+  private handleCollectionOutdated(event: CollectionRemovedEvent): void {
+    event.collection.nfts.forEach(async (nft) => {
+      await this.removeCache(nft);
+      await this.get(nft);
+    });
+    this.collections.delete(event.collection.id);
+  }
+
   @OnEvent('collection.removed')
   private handleCollectionRemoved(event: CollectionRemovedEvent): void {
+    event.collection.nfts.forEach((nft) => this.removeCache(nft));
     this.collections.delete(event.collection.id);
   }
 }

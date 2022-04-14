@@ -1,3 +1,11 @@
-# docker-compose up -d
-# yarn
-# yarn start:deev
+# solana-nft-sniffer
+
+```
+docker-compose up -d
+```
+```
+yarn
+```
+```
+yarn start:dev
+```

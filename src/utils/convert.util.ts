@@ -5,6 +5,7 @@ import {
 import { Collection } from '../manager/entities/collection.entity';
 import { Nft } from '../manager/interfaces/nft.interface';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
+import { CollectionStatus } from '../manager/interfaces/collection-status.interface';
 
 export const collectionProtoToEntity = (
   collection: SolanaCollectionSnifferProto.Collection,
@@ -21,11 +22,18 @@ export const collectionEntityToProto = (
   name: collection.name,
   address: collection.address,
   floor: collection.floor,
+  floorNft: collection.floorNft,
   nftsCount: collection.nfts.length,
+  status: collectionStatusToProto(collection.status),
   createdAt: collection.createdAt,
   updatedAt: collection.updatedAt,
   removedAt: collection.removedAt,
 });
+
+export const collectionStatusToProto = (
+  status: CollectionStatus,
+): SolanaCollectionSnifferProto.CollectionStatus =>
+  SolanaCollectionSnifferProto.CollectionStatus[status];
 
 export const nftEntityToProto = (
   nft: Nft,

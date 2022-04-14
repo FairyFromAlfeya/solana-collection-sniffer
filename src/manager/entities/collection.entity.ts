@@ -7,6 +7,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { dateColumnTransformer } from '../../utils/convert.util';
+import { CollectionStatus } from '../interfaces/collection-status.interface';
 
 @Entity({ name: 'collections' })
 export class Collection {
@@ -22,8 +23,17 @@ export class Collection {
   @Column('numeric', { nullable: true })
   floor?: number;
 
+  @Column({ name: 'floor_nft', nullable: true })
+  floorNft?: string;
+
   @Column('varchar', { array: true, default: [] })
   nfts?: string[];
+
+  @Column('enum', {
+    enum: CollectionStatus,
+    default: CollectionStatus.COLLECTION_STATUS_CREATED,
+  })
+  status?: CollectionStatus;
 
   @CreateDateColumn({
     transformer: dateColumnTransformer,

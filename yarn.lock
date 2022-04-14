@@ -579,10 +579,10 @@
     "@ethersproject/logger" "^5.6.0"
     hash.js "1.1.7"
 
-"@fairyfromalfeya/fsociety-proto@2.0.10":
-  version "2.0.10"
-  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.10.tgz#d0307b0147925d6b426ebc71575c210ca1cfdeaf"
-  integrity sha512-b5GvFgioWi21gZz2hIQU3M7BnDJfQEcxW1/BBgQG8J6TquFyid0Z6kfNvVj7evXhvhQQok8oqlUqvF13N9DL0w==
+"@fairyfromalfeya/fsociety-proto@2.0.12":
+  version "2.0.12"
+  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.12.tgz#35106b9a7011606a4c42513a598ae63670d005b9"
+  integrity sha512-bQ/DINxhwOAhokP0GN7noineIyVpPqB8rMM/wYk/Nv652PXNayjUpSvzfvuSOZFtXZQ0lR3m/Rt/MR1UXbkk8g==
   dependencies:
     "@nestjs/common" "8.4.3"
     "@nestjs/core" "8.4.3"

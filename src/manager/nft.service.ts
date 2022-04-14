@@ -17,7 +17,6 @@ import {
 } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
 import { NftUpdatedEvent } from '../events/nft-updated.event';
-import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 import { Collection } from './entities/collection.entity';
 import { NftStatus } from './interfaces/nft-status.interface';
 
@@ -86,16 +85,5 @@ export class NftService {
         floor: event.nft.price,
       });
     }
-  }
-
-  @OnEvent('collection.updated')
-  private async handleCollectionUpdated(
-    event: CollectionUpdatedEvent,
-  ): Promise<void> {
-    await this.aggregate(
-      event.collection,
-      event.collection.nfts,
-      event.collection.nfts.length,
-    );
   }
 }

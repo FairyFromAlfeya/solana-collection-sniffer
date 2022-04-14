@@ -16,7 +16,7 @@
     "start:prod": "node dist/main"
   },
   "dependencies": {
-    "@fairyfromalfeya/fsociety-proto": "2.0.10",
+    "@fairyfromalfeya/fsociety-proto": "2.0.12",
     "@grpc/grpc-js": "1.6.2",
     "@grpc/proto-loader": "0.6.9",
     "@nestjs/cli": "8.2.4",
