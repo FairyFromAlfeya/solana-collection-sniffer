@@ -1,5 +1,5 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { CONNECTION, nftExtractor } from 'karneges-sbt';
+import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
+import { CONNECTION, nftExtractor, ParsedNFTData } from 'karneges-sbt';
 import { PublicKey } from '@solana/web3.js';
 import { lastValueFrom } from 'rxjs';
 import { Cacheable } from './interfaces/cachable.interface';
@@ -15,6 +15,8 @@ import { Collection } from '../manager/entities/collection.entity';
 import { CollectionRemovedEvent } from '../events/collection-removed.event';
 import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 import { getNftData, getPrice, getRarity } from '../utils/solana.util';
+import { Cache } from 'cache-manager';
+import { CollectionNftsLoadedEvent } from '../events/collection-nfts-loaded.event';
 
 @Injectable()
 export class SolanaService extends Cacheable<Nft, string> {
@@ -25,6 +27,7 @@ export class SolanaService extends Cacheable<Nft, string> {
   constructor(
     private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super();
     this.client = this.redisService.getClient();
@@ -64,14 +67,17 @@ export class SolanaService extends Cacheable<Nft, string> {
 
   protected async getValue(id: string, extra?: string): Promise<Nft> {
     const data = await getNftData(id);
-    const rarity = getRarity(id, data.parsedData);
+    await this.cacheManager.set(
+      `${id}_nft_parsed_data_solana_collection_sniffer`,
+      data.parsedData,
+    );
     const price = await getPrice(id);
 
     return {
       collection: this.collections.get(extra),
       mint: id,
       price: price.price,
-      rarity: rarity.probability,
+      rarity: 0,
       owner: price.owner,
       status: NftStatus[`NFT_STATUS_${price.actionType}`],
       escrowAccount: price.escrowAccount,
@@ -122,12 +128,39 @@ export class SolanaService extends Cacheable<Nft, string> {
       await this.removeCache(nft);
       await this.get(nft);
     });
-    this.collections.delete(event.collection.id);
   }
 
   @OnEvent('collection.removed')
   private handleCollectionRemoved(event: CollectionRemovedEvent): void {
     event.collection.nfts.forEach((nft) => this.removeCache(nft));
     this.collections.delete(event.collection.id);
+  }
+
+  @OnEvent('collection.nfts.loaded')
+  private handleCollectionNftsLoaded(event: CollectionNftsLoadedEvent): void {
+    this.logger.log(`Loading rarity for collection ${event.collection.id}...`);
+    const data: { mint: string; parsedData: ParsedNFTData }[] = [];
+
+    event.collection.nfts.forEach(async (nft) =>
+      data.push({
+        mint: nft,
+        parsedData: await this.cacheManager.del(
+          `${nft}_nft_parsed_data_solana_collection_sniffer`,
+        ),
+      }),
+    );
+
+    const rarity = getRarity(data);
+
+    rarity.forEach((rare) =>
+      this.getCache(rare.mint).then((cache) =>
+        this.client.set(
+          `${cache}_nft_solana_collection_sniffer`,
+          JSON.stringify({ ...cache, rarity: rare.probability }),
+        ),
+      ),
+    );
+
+    this.logger.log(`Rarity for collection ${event.collection.id} is loaded`);
   }
 }

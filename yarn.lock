@@ -579,10 +579,10 @@
     "@ethersproject/logger" "^5.6.0"
     hash.js "1.1.7"
 
-"@fairyfromalfeya/fsociety-proto@2.0.12":
-  version "2.0.12"
-  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.12.tgz#35106b9a7011606a4c42513a598ae63670d005b9"
-  integrity sha512-bQ/DINxhwOAhokP0GN7noineIyVpPqB8rMM/wYk/Nv652PXNayjUpSvzfvuSOZFtXZQ0lR3m/Rt/MR1UXbkk8g==
+"@fairyfromalfeya/fsociety-proto@2.0.13":
+  version "2.0.13"
+  resolved "https://registry.yarnpkg.com/@fairyfromalfeya/fsociety-proto/-/fsociety-proto-2.0.13.tgz#7dd6dd5fb54c6093b0fd33cb86254b522d0c4a2f"
+  integrity sha512-dIER8cBvL+9iW9pf15aBYfmB0g5RfxLnFwXtNXYbpqr5nxo1c2oPzkQwx9CH6YPwJ1SrZDXKniV3dGDk+Lfqrg==
   dependencies:
     "@nestjs/common" "8.4.3"
     "@nestjs/core" "8.4.3"
@@ -2192,6 +2192,11 @@ assign-symbols@^1.0.0:
   resolved "https://registry.yarnpkg.com/assign-symbols/-/assign-symbols-1.0.0.tgz#59667f41fadd4f20ccbc2bb96b8d4f7f78ec0367"
   integrity sha1-WWZ/QfrdTyDMvCu5a41Pf3jsA2c=
 
+async@3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/async/-/async-3.2.0.tgz#b3a2685c5ebb641d3de02d161002c60fc9f85720"
+  integrity sha512-TR2mEZFVOj2pLStYxLht7TyfuRzaydfpxr3k9RpHIzMgw7A64dzsdqCxH1WJyQdoe8T10nDXd9wnEigmiuHIZw==
+
 asynckit@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/asynckit/-/asynckit-0.4.0.tgz#c79ed97f7f34cb8f2ba1bc9790bcc366474b4b79"
@@ -2565,6 +2570,15 @@ cache-base@^1.0.1:
     to-object-path "^0.3.0"
     union-value "^1.0.0"
     unset-value "^1.0.0"
+
+cache-manager@3.6.0:
+  version "3.6.0"
+  resolved "https://registry.yarnpkg.com/cache-manager/-/cache-manager-3.6.0.tgz#696392402bb80447fbab2c9af7a939ce3cd01809"
+  integrity sha512-D4GJZhyYgprYM30ZEPOn9kkdwdPUumX3ujbNbl7FYjcRViRvAgY53k6pO/82wNsm7c4aHVgXfR12/3huA47qnA==
+  dependencies:
+    async "3.2.0"
+    lodash "^4.17.21"
+    lru-cache "6.0.0"
 
 call-bind@^1.0.0:
   version "1.0.2"
@@ -5762,7 +5776,7 @@ lower-case@^2.0.2:
   dependencies:
     tslib "^2.0.3"
 
-lru-cache@^6.0.0:
+lru-cache@6.0.0, lru-cache@^6.0.0:
   version "6.0.0"
   resolved "https://registry.yarnpkg.com/lru-cache/-/lru-cache-6.0.0.tgz#6d6fe6570ebd96aaf90fcad1dafa3b2566db3a94"
   integrity sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==

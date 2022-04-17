@@ -19,8 +19,9 @@ export const getNftData = (mint: string): Promise<NftData> =>
     }),
   );
 
-export const getRarity = (mint: string, parsedData: ParsedNFTData): Rarity =>
-  nftRarer([{ mint, parsedData }])[0];
+export const getRarity = (
+  data: { mint: string; parsedData: ParsedNFTData }[],
+): Rarity[] => nftRarer(data);
 
 export const getPrice = (nft: string): Promise<Price> =>
   lastValueFrom(

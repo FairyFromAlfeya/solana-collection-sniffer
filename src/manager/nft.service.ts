@@ -83,6 +83,7 @@ export class NftService {
       this.collectionService.updateCollection({
         id: event.nft.collection.id,
         floor: event.nft.price,
+        floorNft: event.nft.mint,
       });
     }
   }

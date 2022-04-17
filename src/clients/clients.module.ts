@@ -1,4 +1,4 @@
-import { Global, Module } from '@nestjs/common';
+import { CacheModule, Global, Module } from '@nestjs/common';
 import { SolanaService } from './solana.service';
 import { RedisModule } from 'nestjs-redis/index';
 import { redisConfig } from '../configs/redis.config';
@@ -12,6 +12,7 @@ import { ConsumeService } from './consume.service';
       useFactory: (configService: ConfigService) => redisConfig(configService),
       inject: [ConfigService],
     }),
+    CacheModule.register(),
   ],
   providers: [SolanaService, ConsumeService],
   exports: [SolanaService],
