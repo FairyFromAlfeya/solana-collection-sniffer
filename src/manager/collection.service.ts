@@ -71,6 +71,16 @@ export class CollectionService implements OnModuleInit {
     });
   }
 
+  private async changeStatusAndCommit(
+    id: string,
+    status: CollectionStatus,
+    event: string,
+  ): Promise<void> {
+    await this.updateCollection({ id, status }).then((collection) =>
+      this.eventEmitter.emit(event, new CollectionChangedEvent(collection)),
+    );
+  }
+
   @OnEvent('collection.created')
   private handleCollectionCreated(
     event: CollectionChangedEvent,
@@ -105,29 +115,65 @@ export class CollectionService implements OnModuleInit {
   private async handleCollectionCollectionLoaded(
     event: CollectionChangedEvent,
   ): Promise<void> {
-    await this.updateCollection({
-      id: event.collection.id,
-      status: CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
-    });
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
+      'collection.collection.loaded.committed',
+    );
+  }
+
+  @OnEvent('collection.outdated')
+  private async handleCollectionOutdated(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
+      'collection.outdated.committed',
+    );
+  }
+
+  @OnEvent('collection.loading.nfts')
+  private async handleCollectionLoadingNfts(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_LOADING_NFTS,
+      'collection.loading.nfts.committed',
+    );
   }
 
   @OnEvent('collection.nfts.loaded')
   private async handleCollectionNftsLoaded(
     event: CollectionChangedEvent,
   ): Promise<void> {
-    await this.updateCollection({
-      id: event.collection.id,
-      status: CollectionStatus.COLLECTION_STATUS_NFTS_LOADED,
-    });
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_NFTS_LOADED,
+      'collection.nfts.loaded.committed',
+    );
+  }
+
+  @OnEvent('collection.loading.rarity')
+  private async handleCollectionLoadingRarity(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_LOADING_RARITY,
+      'collection.loading.rarity.committed',
+    );
   }
 
   @OnEvent('collection.rarity.loaded')
   private async handleCollectionRarityLoaded(
     event: CollectionChangedEvent,
   ): Promise<void> {
-    await this.updateCollection({
-      id: event.collection.id,
-      status: CollectionStatus.COLLECTION_STATUS_READY,
-    });
+    return this.changeStatusAndCommit(
+      event.collection.id,
+      CollectionStatus.COLLECTION_STATUS_READY,
+      'collection.rarity.loaded.committed',
+    );
   }
 }

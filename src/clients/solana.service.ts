@@ -115,35 +115,51 @@ export class SolanaService extends Cacheable<Nft, string> {
     return this.removeCache(id).then(() => this.get(id, collection));
   }
 
-  @OnEvent(['collection.created', 'collection.updated'])
+  private async loadNfts(collection: Collection): Promise<void> {
+    this.logger.log(`Updating NFTs cache for collection ${collection.id}`);
+    this.collections.set(collection.id, collection);
+    this.eventEmitter.emit(
+      'collection.loading.nfts',
+      new CollectionChangedEvent(collection),
+    );
+
+    await lastValueFrom(
+      from(collection.nfts).pipe(
+        mergeMap((id) => this.updateNft(id, collection.id), 15),
+        finalize(() => {
+          this.logger.log(
+            `NFTs cache for collection ${collection.id} is loaded`,
+          );
+
+          this.eventEmitter.emit(
+            'collection.nfts.loaded',
+            new CollectionChangedEvent(collection),
+          );
+        }),
+      ),
+    );
+  }
+
+  @OnEvent('collection.created')
+  private handleCollectionCreated(event: CollectionChangedEvent): void {
+    this.collections.set(event.collection.id, event.collection);
+  }
+
+  @OnEvent('collection.updated')
   private handleCollectionUpdated(event: CollectionChangedEvent): void {
     this.collections.set(event.collection.id, event.collection);
+  }
+
+  @OnEvent('collection.collection.loaded')
+  private handleCollectionLoaded(event: CollectionChangedEvent): Promise<void> {
+    return this.loadNfts(event.collection);
   }
 
   @OnEvent('collection.outdated')
   private handleCollectionOutdated(
     event: CollectionChangedEvent,
-  ): Promise<void | Nft> {
-    this.logger.log(
-      `Updating NFTs cache for collection ${event.collection.id}`,
-    );
-    this.collections.set(event.collection.id, event.collection);
-
-    return lastValueFrom(
-      from(event.collection.nfts).pipe(
-        mergeMap((id) => this.updateNft(id, event.collection.id), 15),
-        finalize(() => {
-          this.logger.log(
-            `NFTs cache for collection ${event.collection.id} is loaded`,
-          );
-
-          this.eventEmitter.emit(
-            'collection.nfts.loaded',
-            new CollectionChangedEvent(event.collection),
-          );
-        }),
-      ),
-    );
+  ): Promise<void> {
+    return this.loadNfts(event.collection);
   }
 
   @OnEvent('collection.removed')
@@ -163,12 +179,22 @@ export class SolanaService extends Cacheable<Nft, string> {
     event: CollectionChangedEvent,
   ): Promise<void> {
     this.logger.log(`Loading rarity for collection ${event.collection.id}...`);
+    this.eventEmitter.emit(
+      'collection.loading.rarity',
+      new CollectionChangedEvent(event.collection),
+    );
 
     return lastValueFrom(
       from(event.collection.nfts).pipe(
         mergeMap((nft) =>
           this.client
             .get(`${nft}_nft_parsed_data_solana_collection_sniffer`)
+            .then((res) => {
+              this.client.getdel(
+                `${nft}_nft_parsed_data_solana_collection_sniffer`,
+              );
+              return res;
+            })
             .then((res) => ({ parsedData: JSON.parse(res), mint: nft })),
         ),
         toArray(),

@@ -75,7 +75,10 @@ export class NftService {
 
   @OnEvent('nft.updated')
   private async handleNftUpdated(event: NftChangedEvent): Promise<void> {
-    await this.nftQueue.add(event.nft);
+    await this.nftQueue.add(event.nft, {
+      removeOnComplete: true,
+      removeOnFail: true,
+    });
     this.subject.next(event.nft);
   }
 }
