@@ -3,6 +3,7 @@ import { lastValueFrom } from 'rxjs';
 import {
   CONNECTION,
   getNftDataByMint,
+  nftExtractor,
   nftRarer,
   ParsedNFTData,
   priceExtractor,
@@ -32,6 +33,16 @@ export const getPrice = (nft: string): Promise<Price> =>
       () =>
         ({
           price: 0,
-          timestamp: Date.now(),
+          timestamp: Date.now() / 1000,
         } as Price),
     );
+
+export const extractNftsAddressesFromCollection = (
+  candyMachine: string,
+): Promise<string[]> =>
+  lastValueFrom(
+    nftExtractor({
+      candyMachine: new PublicKey(candyMachine),
+      connection: CONNECTION,
+    }),
+  );

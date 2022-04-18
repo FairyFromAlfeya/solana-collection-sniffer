@@ -8,8 +8,8 @@ import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { CollectionChangedEvent } from '../events/collection-changed.event';
-import { SolanaService } from '../clients/solana.service';
 import { CollectionStatus } from './interfaces/collection-status.interface';
+import { extractNftsAddressesFromCollection } from '../utils/solana.util';
 
 @Injectable()
 export class CollectionService implements OnModuleInit {
@@ -18,7 +18,6 @@ export class CollectionService implements OnModuleInit {
   constructor(
     @InjectRepository(Collection)
     private readonly collectionRepository: Repository<Collection>,
-    private readonly solanaService: SolanaService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
@@ -36,14 +35,12 @@ export class CollectionService implements OnModuleInit {
   }
 
   getCollectionByIdOrThrow(id: string): Promise<Collection> {
-    return this.collectionRepository
-      .findOneOrFail(id, { cache: true })
-      .catch(() => {
-        throw new RpcException({
-          code: status.NOT_FOUND,
-          message: `Collection ${id} does not exist`,
-        });
+    return this.collectionRepository.findOneOrFail(id).catch(() => {
+      throw new RpcException({
+        code: status.NOT_FOUND,
+        message: `Collection ${id} does not exist`,
       });
+    });
   }
 
   createCollection(collection: Collection): Promise<Collection> {
@@ -85,27 +82,43 @@ export class CollectionService implements OnModuleInit {
       status: CollectionStatus.COLLECTION_STATUS_LOADING_COLLECTION,
     })
       .then((collection) =>
-        this.solanaService.extractNftsAddressesFromCollection(
-          collection.address,
-        ),
+        extractNftsAddressesFromCollection(collection.address),
       )
       .then((nfts) =>
         this.updateCollection({
-          ...event.collection,
-          status: CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
+          id: event.collection.id,
           nfts,
         }),
       )
-      .then((collection) => {
-        this.logger.log(
-          `Loaded ${collection.nfts.length} NFTs for collection ${event.collection.id}`,
-        );
-
+      .then((collection) =>
         this.eventEmitter.emit(
-          'collection.outdated',
+          'collection.collection.loaded',
           new CollectionChangedEvent(collection),
-        );
-      });
+        ),
+      )
+      .then(() =>
+        this.logger.log(`Collection ${event.collection.id} is loaded`),
+      );
+  }
+
+  @OnEvent('collection.collection.loaded')
+  private async handleCollectionCollectionLoaded(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    await this.updateCollection({
+      id: event.collection.id,
+      status: CollectionStatus.COLLECTION_STATUS_COLLECTION_LOADED,
+    });
+  }
+
+  @OnEvent('collection.nfts.loaded')
+  private async handleCollectionNftsLoaded(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    await this.updateCollection({
+      id: event.collection.id,
+      status: CollectionStatus.COLLECTION_STATUS_NFTS_LOADED,
+    });
   }
 
   @OnEvent('collection.rarity.loaded')

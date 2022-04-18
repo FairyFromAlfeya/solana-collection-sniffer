@@ -1034,7 +1034,7 @@
   dependencies:
     tslib "2.3.1"
 
-"@nestjs/bull@^0.5.4":
+"@nestjs/bull@0.5.4":
   version "0.5.4"
   resolved "https://registry.yarnpkg.com/@nestjs/bull/-/bull-0.5.4.tgz#9ba27441d625500a49439eaadec2a81ffd2e961f"
   integrity sha512-0w9E+Qvcyqfjwis6qrLIXjAUZcXZW1L4Yv0ytGMIuaZCrawx5NX0ytBRpRJTcvzIf8TEvNmNydt6fTn4iA/hiQ==
@@ -1498,7 +1498,7 @@
   dependencies:
     base-x "^3.0.6"
 
-"@types/bull@^3.15.8":
+"@types/bull@3.15.8":
   version "3.15.8"
   resolved "https://registry.yarnpkg.com/@types/bull/-/bull-3.15.8.tgz#ae2139f94490d740b37c8da5d828ce75dd82ce7c"
   integrity sha512-8DbSPMSsZH5PWPnGEkAZLYgJEH4ghHJNKF7LB6Wr5R0/v6g+Vs+JoaA7kcvLtHE936xg2WpFPkaoaJgExOmKDw==
@@ -2573,7 +2573,7 @@ bufferutil@^4.0.1:
   dependencies:
     node-gyp-build "^4.3.0"
 
-bull@^4.8.1:
+bull@4.8.1:
   version "4.8.1"
   resolved "https://registry.yarnpkg.com/bull/-/bull-4.8.1.tgz#83daaefc3118876450b21d7a02bc11ea28a2440e"
   integrity sha512-ojH5AfOchKQsQwwE+thViS1pMpvREGC+Ov1+3HXsQqn5Q27ZSGkgMriMqc6c9J9rvQ/+D732pZE+TN1+2LRWVg==

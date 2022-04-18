@@ -12,18 +12,13 @@ import { status } from '@grpc/grpc-js';
 export class JoiValidationPipe implements PipeTransform {
   private readonly logger = new Logger('JoiValidationPipe');
 
-  constructor(
-    private readonly schema: ObjectSchema,
-    private readonly container?: string,
-  ) {}
+  constructor(private readonly schema: ObjectSchema) {}
 
   transform(value: any, metadata: ArgumentMetadata) {
     if (metadata.type === 'body') {
       this.logger.log(`Validating value: ${JSON.stringify(value)}`);
 
-      const result = this.schema.validate(
-        this.container ? value[this.container] : value,
-      );
+      const result = this.schema.validate(value);
 
       if (result.error) {
         throw new RpcException({
@@ -32,7 +27,7 @@ export class JoiValidationPipe implements PipeTransform {
         });
       }
 
-      return this.container ? { [this.container]: result.value } : result.value;
+      return result.value;
     }
 
     return value;

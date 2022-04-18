@@ -5,6 +5,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
   PrimaryGeneratedColumn,
+  Index,
 } from 'typeorm';
 import { dateColumnTransformer } from '../../utils/convert.util';
 import { CollectionStatus } from '../interfaces/collection-status.interface';
@@ -17,6 +18,7 @@ export class Collection {
   @Column()
   name?: string;
 
+  @Index({ unique: true })
   @Column()
   address?: string;
 

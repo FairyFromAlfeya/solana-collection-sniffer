@@ -26,13 +26,11 @@ export class CollectionGuard implements CanActivate {
   ) {}
 
   canActivate(context: ExecutionContext): boolean {
-    // Metadata
     const status = this.reflector.get<CollectionStatus>(
       'status',
       context.getHandler(),
     );
 
-    // Request and deal data
     const request = context
       .switchToRpc()
       .getData<
@@ -45,7 +43,9 @@ export class CollectionGuard implements CanActivate {
     );
 
     this.logger.log(
-      `Collection status: ${collection.status}. Must be: ${status}`,
+      `Collection status: ${
+        collection.status
+      }. Must be: ${status}. Can activate: ${collection.status === status}`,
     );
 
     return collection.status === status;

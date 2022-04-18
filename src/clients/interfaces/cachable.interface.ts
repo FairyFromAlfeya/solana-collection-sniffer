@@ -41,7 +41,7 @@ export abstract class Cacheable<T, D> {
   // Set Local/Redis/Postgres cache
   protected abstract getCache(id: string): Promise<T | null>;
   protected abstract setCache(id: string, value: T): Promise<void>;
-  abstract removeCache(id: string): Promise<string>;
+  protected abstract removeCache(id: string): Promise<void>;
 
   // Get snapshot from another service
   protected abstract getValue(id: string, extra?: D): Promise<T>;

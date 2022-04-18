@@ -7,6 +7,11 @@ import { Nft } from '../manager/interfaces/nft.interface';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
 import { CollectionStatus } from '../manager/interfaces/collection-status.interface';
 
+export const keepOnlyCollectionId = (nft: Nft): Nft => ({
+  ...nft,
+  collection: { id: nft.collection.id },
+});
+
 export const collectionProtoToEntity = (
   collection: SolanaCollectionSnifferProto.Collection,
 ): Collection => ({
