@@ -10,9 +10,9 @@ import {
   removeCollectionRequestSchema,
   paginationRequestSchema,
 } from '../utils/validation.util';
-import { JoiValidationPipe } from '../pipes/joi-validation.pipe';
+import { JoiValidationPipe } from './pipes/joi-validation.pipe';
 import { CollectionServiceProxy } from '../proxy/collection-service.proxy';
-import { ProfilingInterceptor } from '../interceptors/profiling.interceptor';
+import { ProfilingInterceptor } from './interceptors/profiling.interceptor';
 
 @GrpcService()
 @UseInterceptors(ProfilingInterceptor)

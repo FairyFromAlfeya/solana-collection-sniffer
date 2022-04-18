@@ -16,9 +16,10 @@ import {
   toArray,
 } from 'rxjs';
 import { OnEvent } from '@nestjs/event-emitter';
-import { NftUpdatedEvent } from '../events/nft-updated.event';
+import { NftChangedEvent } from '../events/nft-changed.event';
 import { Collection } from './entities/collection.entity';
-import { NftStatus } from './interfaces/nft-status.interface';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
 
 @Injectable()
 export class NftService {
@@ -27,6 +28,7 @@ export class NftService {
   constructor(
     private readonly collectionService: CollectionService,
     private readonly solanaService: SolanaService,
+    @InjectQueue('nft') private readonly nftQueue: Queue,
   ) {}
 
   listNfts(
@@ -64,7 +66,7 @@ export class NftService {
   ): Promise<[Nft[], number]> {
     return lastValueFrom(
       from(ids).pipe(
-        mergeMap((id) => this.solanaService.get(id, collection.id), 15),
+        mergeMap((id) => this.solanaService.get(id, collection.id)),
         toArray(),
         map((nfts) => [[...nfts], total]),
       ),
@@ -72,19 +74,9 @@ export class NftService {
   }
 
   @OnEvent('nft.updated')
-  private handleNftUpdated(event: NftUpdatedEvent): void {
+  private async handleNftUpdated(event: NftChangedEvent): Promise<void> {
     this.subject.next(event.nft);
-
-    if (
-      event.nft.status === NftStatus.NFT_STATUS_LISTING &&
-      (!event.nft.collection.floor ||
-        event.nft.collection.floor > event.nft.price)
-    ) {
-      this.collectionService.updateCollection({
-        id: event.nft.collection.id,
-        floor: event.nft.price,
-        floorNft: event.nft.mint,
-      });
-    }
+    console.log('Add to queue');
+    await this.nftQueue.add(event.nft);
   }
 }

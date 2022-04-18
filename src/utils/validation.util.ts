@@ -63,7 +63,7 @@ const orderDirectionSchema: Joi.NumberSchema = Joi.number()
 export const paginationRequestSchema: Joi.ObjectSchema<CommonProto.PaginationRequest> =
   Joi.object<CommonProto.PaginationRequest, true>({
     user: Joi.string().uuid({ version: 'uuidv4', separator: '-' }).optional(),
-    pageSize: Joi.number().default(20).min(1).max(100),
+    pageSize: Joi.number().default(20).min(1),
     pageNumber: Joi.number().default(0).min(0),
     orderBy: orderBySchema.optional(),
     orderDirection: orderDirectionSchema.optional(),

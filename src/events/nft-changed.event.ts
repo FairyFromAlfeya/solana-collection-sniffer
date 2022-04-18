@@ -1,5 +1,5 @@
 import { Nft } from '../manager/interfaces/nft.interface';
 
-export class NftUpdatedEvent {
+export class NftChangedEvent {
   constructor(public readonly nft: Nft) {}
 }

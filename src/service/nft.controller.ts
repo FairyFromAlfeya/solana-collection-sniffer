@@ -1,17 +1,19 @@
 import { GrpcMethod, GrpcService } from '@nestjs/microservices';
 import {
-  SolanaCollectionSnifferProto,
   CommonProto,
+  SolanaCollectionSnifferProto,
 } from '@fairyfromalfeya/fsociety-proto';
-import { UseInterceptors, UsePipes } from '@nestjs/common';
+import { UseGuards, UseInterceptors, UsePipes } from '@nestjs/common';
 import {
   paginationRequestSchema,
   streamUpdatedNftsRequestSchema,
 } from '../utils/validation.util';
-import { JoiValidationPipe } from '../pipes/joi-validation.pipe';
+import { JoiValidationPipe } from './pipes/joi-validation.pipe';
 import { NftServiceProxy } from '../proxy/nft-service.proxy';
-import { ProfilingInterceptor } from '../interceptors/profiling.interceptor';
+import { ProfilingInterceptor } from './interceptors/profiling.interceptor';
 import { Observable } from 'rxjs';
+import { CollectionGuard, Status } from './guards/collection.guard';
+import { CollectionStatus } from '../manager/interfaces/collection-status.interface';
 
 @GrpcService()
 @UseInterceptors(ProfilingInterceptor)
@@ -21,7 +23,9 @@ export class NftController {
   @GrpcMethod(
     SolanaCollectionSnifferProto.SOLANA_COLLECTION_SNIFFER_SERVICE_NAME,
   )
+  @Status(CollectionStatus.COLLECTION_STATUS_READY)
   @UsePipes(new JoiValidationPipe(paginationRequestSchema))
+  @UseGuards(CollectionGuard)
   listNfts(
     request: CommonProto.PaginationRequest,
   ): Promise<SolanaCollectionSnifferProto.ListNftsResponse> {
@@ -31,7 +35,9 @@ export class NftController {
   @GrpcMethod(
     SolanaCollectionSnifferProto.SOLANA_COLLECTION_SNIFFER_SERVICE_NAME,
   )
+  @Status(CollectionStatus.COLLECTION_STATUS_READY)
   @UsePipes(new JoiValidationPipe(streamUpdatedNftsRequestSchema))
+  @UseGuards(CollectionGuard)
   streamUpdatedNfts(
     request: SolanaCollectionSnifferProto.StreamUpdatedNftsRequest,
   ): Observable<SolanaCollectionSnifferProto.Nft> {

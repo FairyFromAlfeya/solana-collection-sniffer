@@ -7,10 +7,9 @@ import { RpcException } from '@nestjs/microservices';
 import { status } from '@grpc/grpc-js';
 import { orderDirectionToString } from '../utils/convert.util';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { CollectionCreatedEvent } from '../events/collection-created.event';
+import { CollectionChangedEvent } from '../events/collection-changed.event';
 import { SolanaService } from '../clients/solana.service';
 import { CollectionStatus } from './interfaces/collection-status.interface';
-import { CollectionOutdatedEvent } from '../events/collection-outdated.event';
 
 @Injectable()
 export class CollectionService implements OnModuleInit {
@@ -30,19 +29,21 @@ export class CollectionService implements OnModuleInit {
       result[0].forEach((collection) =>
         this.eventEmitter.emit(
           'collection.outdated',
-          new CollectionOutdatedEvent(collection),
+          new CollectionChangedEvent(collection),
         ),
       );
     });
   }
 
   getCollectionByIdOrThrow(id: string): Promise<Collection> {
-    return this.collectionRepository.findOneOrFail(id).catch(() => {
-      throw new RpcException({
-        code: status.NOT_FOUND,
-        message: `Collection ${id} does not exist`,
+    return this.collectionRepository
+      .findOneOrFail(id, { cache: true })
+      .catch(() => {
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: `Collection ${id} does not exist`,
+        });
       });
-    });
   }
 
   createCollection(collection: Collection): Promise<Collection> {
@@ -75,7 +76,7 @@ export class CollectionService implements OnModuleInit {
 
   @OnEvent('collection.created')
   private handleCollectionCreated(
-    event: CollectionCreatedEvent,
+    event: CollectionChangedEvent,
   ): Promise<void> {
     this.logger.log(`Extracting NFTs for collection ${event.collection.id}`);
 
@@ -102,8 +103,18 @@ export class CollectionService implements OnModuleInit {
 
         this.eventEmitter.emit(
           'collection.outdated',
-          new CollectionOutdatedEvent(collection),
+          new CollectionChangedEvent(collection),
         );
       });
+  }
+
+  @OnEvent('collection.rarity.loaded')
+  private async handleCollectionRarityLoaded(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
+    await this.updateCollection({
+      id: event.collection.id,
+      status: CollectionStatus.COLLECTION_STATUS_READY,
+    });
   }
 }

@@ -1,5 +1,5 @@
 import { Collection } from '../manager/entities/collection.entity';
 
-export class CollectionRarityLoadedEvent {
+export class CollectionChangedEvent {
   constructor(public readonly collection: Collection) {}
 }

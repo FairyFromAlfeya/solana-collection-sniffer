@@ -17,7 +17,7 @@ COPY tsconfig.json /app/tsconfig.json
 COPY tsconfig.build.json /app/tsconfig.build.json
 
 # Build
-RUN yarn
+RUN yarn --prod
 RUN yarn build
 
 # Clean

@@ -1,22 +1,19 @@
-import { CACHE_MANAGER, Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CONNECTION, nftExtractor, ParsedNFTData } from 'karneges-sbt';
 import { PublicKey } from '@solana/web3.js';
-import { lastValueFrom } from 'rxjs';
+import { from, lastValueFrom, mergeMap, finalize } from 'rxjs';
 import { Cacheable } from './interfaces/cachable.interface';
 import { Nft } from '../manager/interfaces/nft.interface';
 import { Redis } from 'ioredis';
 import { RedisService } from 'nestjs-redis';
 import { NftStatus } from '../manager/interfaces/nft-status.interface';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { NftUpdatedEvent } from '../events/nft-updated.event';
+import { NftChangedEvent } from '../events/nft-changed.event';
 import { Marketplace } from '../manager/interfaces/marketplace.interface';
 import { Price } from './interfaces/price.interface';
 import { Collection } from '../manager/entities/collection.entity';
-import { CollectionRemovedEvent } from '../events/collection-removed.event';
-import { CollectionUpdatedEvent } from '../events/collection-updated.event';
 import { getNftData, getPrice, getRarity } from '../utils/solana.util';
-import { Cache } from 'cache-manager';
-import { CollectionNftsLoadedEvent } from '../events/collection-nfts-loaded.event';
+import { CollectionChangedEvent } from '../events/collection-changed.event';
 
 @Injectable()
 export class SolanaService extends Cacheable<Nft, string> {
@@ -27,7 +24,6 @@ export class SolanaService extends Cacheable<Nft, string> {
   constructor(
     private readonly redisService: RedisService,
     private readonly eventEmitter: EventEmitter2,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {
     super();
     this.client = this.redisService.getClient();
@@ -62,14 +58,14 @@ export class SolanaService extends Cacheable<Nft, string> {
       JSON.stringify({ ...value, collection: { id: value.collection.id } }),
     );
 
-    this.eventEmitter.emit('nft.updated', new NftUpdatedEvent(value));
+    this.eventEmitter.emit('nft.updated', new NftChangedEvent(value));
   }
 
   protected async getValue(id: string, extra?: string): Promise<Nft> {
     const data = await getNftData(id);
-    await this.cacheManager.set(
+    await this.client.set(
       `${id}_nft_parsed_data_solana_collection_sniffer`,
-      data.parsedData,
+      JSON.stringify(data.parsedData),
     );
     const price = await getPrice(id);
 
@@ -117,50 +113,99 @@ export class SolanaService extends Cacheable<Nft, string> {
     );
   }
 
+  private updateNft(id: string, collection: string): Promise<void | Nft> {
+    return this.removeCache(id).then(() => this.get(id, collection));
+  }
+
   @OnEvent(['collection.created', 'collection.updated'])
-  private handleCollectionUpdated(event: CollectionUpdatedEvent): void {
+  private handleCollectionUpdated(event: CollectionChangedEvent): void {
     this.collections.set(event.collection.id, event.collection);
   }
 
   @OnEvent('collection.outdated')
-  private handleCollectionOutdated(event: CollectionRemovedEvent): void {
-    event.collection.nfts.forEach(async (nft) => {
-      await this.removeCache(nft);
-      await this.get(nft);
-    });
+  private handleCollectionOutdated(
+    event: CollectionChangedEvent,
+  ): Promise<void | Nft> {
+    this.logger.log(`Loading NFTs cache for collection ${event.collection.id}`);
+    this.collections.set(event.collection.id, event.collection);
+
+    return lastValueFrom(
+      from(event.collection.nfts).pipe(
+        mergeMap((id) => this.updateNft(id, event.collection.id), 15),
+        finalize(() => {
+          this.logger.log(
+            `NFTs cache for collection ${event.collection.id} is loaded`,
+          );
+
+          this.eventEmitter.emit(
+            'collection.nfts.loaded',
+            new CollectionChangedEvent(event.collection),
+          );
+        }),
+      ),
+    );
   }
 
   @OnEvent('collection.removed')
-  private handleCollectionRemoved(event: CollectionRemovedEvent): void {
+  private handleCollectionRemoved(event: CollectionChangedEvent): void {
     event.collection.nfts.forEach((nft) => this.removeCache(nft));
     this.collections.delete(event.collection.id);
   }
 
   @OnEvent('collection.nfts.loaded')
-  private handleCollectionNftsLoaded(event: CollectionNftsLoadedEvent): void {
+  private async handleCollectionNftsLoaded(
+    event: CollectionChangedEvent,
+  ): Promise<void> {
     this.logger.log(`Loading rarity for collection ${event.collection.id}...`);
     const data: { mint: string; parsedData: ParsedNFTData }[] = [];
 
-    event.collection.nfts.forEach(async (nft) =>
+    for (const nft of event.collection.nfts) {
+      this.logger.log(
+        `Parsed data get: ${nft}_nft_parsed_data_solana_collection_sniffer`,
+      );
+      const parsed = await this.client
+        .get(`${nft}_nft_parsed_data_solana_collection_sniffer`)
+        .then((res) => JSON.parse(res));
+
       data.push({
         mint: nft,
-        parsedData: await this.cacheManager.del(
-          `${nft}_nft_parsed_data_solana_collection_sniffer`,
-        ),
-      }),
-    );
+        parsedData: parsed,
+      });
+    }
 
     const rarity = getRarity(data);
 
-    rarity.forEach((rare) =>
-      this.getCache(rare.mint).then((cache) =>
-        this.client.set(
-          `${cache}_nft_solana_collection_sniffer`,
-          JSON.stringify({ ...cache, rarity: rare.probability }),
-        ),
-      ),
-    );
+    for (const rare of rarity) {
+      await this.getCache(rare.mint).then(async (cache) => {
+        if (rare.probability > 0) {
+          this.logger.log(`${rare.mint}: ${rare.probability}`);
+        }
 
+        await this.client.set(
+          `${rare.mint}_nft_solana_collection_sniffer`,
+          JSON.stringify({
+            ...cache,
+            rarity: rare.probability,
+            collection: { id: cache.collection.id },
+          }),
+        );
+
+        if (rare.probability > 0) {
+          this.logger.log(
+            await this.client.get(`${cache}_nft_solana_collection_sniffer`),
+          );
+        }
+      });
+    }
+
+    this.eventEmitter.emit(
+      'collection.rarity.loaded',
+      new CollectionChangedEvent(event.collection),
+    );
     this.logger.log(`Rarity for collection ${event.collection.id} is loaded`);
+  }
+
+  getCollection(id: string): Collection {
+    return this.collections.get(id);
   }
 }
