@@ -125,7 +125,7 @@ export class SolanaService extends Cacheable<Nft, string> {
 
     await lastValueFrom(
       from(collection.nfts).pipe(
-        mergeMap((id) => this.updateNft(id, collection.id), 15),
+        mergeMap((id) => this.updateNft(id, collection.id), 5),
         finalize(() => {
           this.logger.log(
             `NFTs cache for collection ${collection.id} is loaded`,
@@ -200,13 +200,15 @@ export class SolanaService extends Cacheable<Nft, string> {
         toArray(),
         map((data) => getRarity(data)),
         switchMap((rarities) => from(rarities)),
-        mergeMap((rarity) =>
-          this.getCache(rarity.mint).then((nft) =>
-            this.setCache(rarity.mint, {
-              ...nft,
-              rarity: rarity.probability,
-            }),
-          ),
+        mergeMap(
+          (rarity) =>
+            this.getCache(rarity.mint).then((nft) =>
+              this.setCache(rarity.mint, {
+                ...nft,
+                rarity: rarity.probability,
+              }),
+            ),
+          5,
         ),
         finalize(() =>
           this.eventEmitter.emit(

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CommonProto } from '@fairyfromalfeya/fsociety-proto';
 import { Nft } from './interfaces/nft.interface';
 import { CollectionService } from './collection.service';
@@ -75,10 +75,15 @@ export class NftService {
 
   @OnEvent('nft.updated')
   private async handleNftUpdated(event: NftChangedEvent): Promise<void> {
+    this.subject.next(event.nft);
+    Logger.log(
+      `NFT emitted with delay: ${
+        Date.now() - new Date(event.nft.createdAt).getTime()
+      }ms`,
+    );
     await this.nftQueue.add(event.nft, {
       removeOnComplete: true,
       removeOnFail: true,
     });
-    this.subject.next(event.nft);
   }
 }

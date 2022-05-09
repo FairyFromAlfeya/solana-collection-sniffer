@@ -5,7 +5,7 @@ import { ClientsModule } from './clients/clients.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { BullModule } from '@nestjs/bull';
-import { redisConfig } from './configs/redis.config';
+import { queueRedisConfig } from './configs/redis.config';
 
 @Module({
   imports: [
@@ -14,7 +14,11 @@ import { redisConfig } from './configs/redis.config';
     EventEmitterModule.forRoot({ wildcard: true }),
     BullModule.forRootAsync({
       useFactory: (configService: ConfigService) => ({
-        redis: redisConfig(configService),
+        redis: queueRedisConfig(configService),
+        limiter: {
+          max: 1000,
+          duration: 5000,
+        },
       }),
       inject: [ConfigService],
     }),
